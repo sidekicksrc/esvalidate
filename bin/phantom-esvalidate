@@ -269,21 +269,17 @@ esprima = require('/esprima.js');})();
 
 var options, fnames, count, formatter, dieLoudly, formatter;
 
-function tryGet() {
+function tryGet(searchPaths) {
   'use strict';
 
-  var args = [].slice.apply(arguments),
-      valueToGet = null,
+  var valueToGet = null,
       path = null;
 
-  if (args.length) {
-    path = args.splice(0, 1)[0];
-
-    try {
+  for(var i = 0; i < searchPaths.length; i++) {
+    path = searchPaths[i];
+    if(fs.existsSync(path)) {
       valueToGet = require(path);
-    } catch (e) {
-      log(e);
-      return tryGet.apply(this, args);
+      break;
     }
   }
   return valueToGet;
@@ -342,14 +338,16 @@ if (options.format.slice(options.format.length - 3).toLowerCase() !== '.js') {
   options.format = options.format + '.js';
 }
 
-var tempFormatter = tryGet('../formats/' + options.format, options.format, './' + options.format);
+var cwd = process.cwd();
+var searchPaths = ['../formats/' + options.format, cwd + '/' + options.format];
+var tempFormatter = tryGet(searchPaths);
 
 if (!formatter && tempFormatter) {
   formatter = tempFormatter;
 }
 
 if (!formatter) {
-  log('Error: unknown report format ' + options.format);
+  log('Error: unknown report format ' + options.format + ', searched: ' + searchPaths.join(', '));
   process.exit(1);
 } else {
   formatter = formatter(log);
